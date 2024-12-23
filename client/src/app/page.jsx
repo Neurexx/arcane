@@ -8,23 +8,26 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function Component() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const session={user:{_id:"dfkjvnkjf",
 
-  useEffect(() => {
-    if (status === "loading") return; // Wait for session status to load
-    if (session?.user) {
-      router.push("/dashboard"); // Redirect to dashboard if session exists
-    }
-  }, [session, status, router]);
+  }}
+  const status="not"
+  // const router = useRouter();
 
-  if (status === "loading") {
-    return <p>Loading...</p>; // Optional loading state
-  }
+  // useEffect(() => {
+  //   if (status === "loading") return; // Wait for session status to load
+  //   if (session?.user) {
+  //     router.push("/dashboard"); // Redirect to dashboard if session exists
+  //   }
+  // }, [session, status, router]);
 
-  if (session?.user) {
-    return null; // Prevent rendering while redirecting
-  }
+  // if (status === "loading") {
+  //   return <p>Loading...</p>; // Optional loading state
+  // }
+
+  // if (session?.user) {
+  //   return null; // Prevent rendering while redirecting
+  // }
 
   return (
     <div className="flex flex-col min-h-[100dvh]">
