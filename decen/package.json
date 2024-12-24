@@ -1,12 +1,26 @@
 {
   "name": "decen",
   "version": "1.0.0",
-  "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js",
+    "dev": "nodemon app.js"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "type": "module",
+  "description": "",
+  "dependencies": {
+    "@solana/web3.js": "^1.98.0",
+    "crypto": "^1.0.1",
+    "express": "^4.21.2",
+    "mongoose": "^8.9.2",
+    "shamirs-secret-sharing": "^2.0.0",
+    "tweetnacl": "^1.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
 }

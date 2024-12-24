@@ -23,7 +23,6 @@ const examAttemptSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  endTime: Date,
   score: Number,
   status: {
     type: String,
