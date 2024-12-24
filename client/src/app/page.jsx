@@ -14,10 +14,26 @@ import {
   Users,
   Clock,
 } from "lucide-react";
+import About from "./about";
+import Contact from "./contact";
 
 export default function HomePage() {
   const [hoveredFeature, setHoveredFeature] = useState(null);
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const openAboutModal = () => {
+    setIsAboutModalOpen(true);
+  };
+  const closeAboutModal = () => {
+    setIsAboutModalOpen(false);
+  };
+  const openContactModal = () => {
+    setIsContactModalOpen(true);
+  };
 
+  const closeContactModal = () => {
+    setIsContactModalOpen(false);
+  };
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col">
       {/* Header */}
@@ -33,24 +49,18 @@ export default function HomePage() {
                 <span className="text-xl font-bold">ExamSecure</span>
               </Link>
               <div className="hidden md:flex space-x-6">
-                <Link
-                  href="/features"
-                  className="hover:text-blue-200 transition-colors"
-                >
-                  Features
-                </Link>
-                <Link
-                  href="/about"
-                  className="hover:text-blue-200 transition-colors"
+                <button
+                  onClick={openAboutModal}
+                  className="text-sm font-medium text-white dark:text-gray-300 transition-colors hover:text-green-600"
                 >
                   About
-                </Link>
-                <Link
-                  href="/contact"
-                  className="hover:text-blue-200 transition-colors"
+                </button>
+                <button
+                  onClick={openContactModal}
+                  className="text-sm font-medium text-white dark:text-gray-300 transition-colors hover:text-green-600"
                 >
                   Contact
-                </Link>
+                </button>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -83,7 +93,7 @@ export default function HomePage() {
             scheduling solutions.
           </p>
           <div className="flex justify-center space-x-4">
-            <Link href="/demo">
+            <Link href="/signup">
               <button className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
                 <span>Request Demo</span>
                 <ArrowRight className="h-5 w-5" />
@@ -257,6 +267,32 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+      {isAboutModalOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center"
+          onClick={closeAboutModal}
+        >
+          <div
+            className="relative bg-white dark:bg-black rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <About />
+          </div>
+        </div>
+      )}
+       {isContactModalOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center"
+          onClick={closeContactModal}
+        >
+          <div
+            className="relative bg-white dark:bg-black rounded-lg shadow-lg max-w-4xl w-full overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Contact />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
