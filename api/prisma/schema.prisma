@@ -1,0 +1,206 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  role      Role     @default(STUDENT)
+  student   Student?
+  teacher   Teacher?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+model Student {
+  id                  Int                  @id @default(autoincrement())
+  userId              Int                  @unique
+  user                User                 @relation(fields: [userId], references: [id])
+  rollNumber         String               @unique
+  name               String
+  department         String
+  semester           Int
+  examAttempts       ExamAttempt[]
+  seatingArrangements SeatingArrangement[]
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  @@map("students")
+}
+
+model Teacher {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  user      User     @relation(fields: [userId], references: [id])
+  name      String
+  department String
+  exams     Exam[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("teachers")
+}
+
+model Course {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  name        String
+  department  String
+  semester    Int
+  exams       Exam[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("courses")
+}
+
+model Exam {
+  id             Int            @id @default(autoincrement())
+  courseId       Int
+  course         Course         @relation(fields: [courseId], references: [id])
+  teacherId      Int
+  teacher        Teacher        @relation(fields: [teacherId], references: [id])
+  title          String
+  description    String?
+  date           DateTime
+  duration       Int            // in minutes
+  totalMarks     Int
+  passingMarks   Int
+  examQuestions  ExamQuestion[]
+  examAttempts   ExamAttempt[]
+  examSchedules  ExamSchedule[]
+  status         ExamStatus     @default(DRAFT)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@map("exams")
+}
+
+enum ExamStatus {
+  DRAFT
+  PUBLISHED
+  IN_PROGRESS
+  COMPLETED
+}
+
+model ExamQuestion {
+  id          Int       @id @default(autoincrement())
+  examId      Int
+  exam        Exam      @relation(fields: [examId], references: [id])
+  question    String
+  options     String[]  // Array of options
+  answer      Int       // Index of correct option
+  marks       Int
+  answers     Answer[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("exam_questions")
+}
+
+model ExamAttempt {
+  id        Int       @id @default(autoincrement())
+  examId    Int
+  exam      Exam      @relation(fields: [examId], references: [id])
+  studentId Int
+  student   Student   @relation(fields: [studentId], references: [id])
+  startTime DateTime  @default(now())
+  endTime   DateTime?
+  score     Int?
+  answers   Answer[]
+  status    AttemptStatus @default(IN_PROGRESS)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("exam_attempts")
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  EVALUATED
+}
+
+model Answer {
+  id              Int           @id @default(autoincrement())
+  examAttemptId   Int
+  examAttempt     ExamAttempt  @relation(fields: [examAttemptId], references: [id])
+  questionId      Int
+  question        ExamQuestion @relation(fields: [questionId], references: [id])
+  selectedOption  Int
+  isCorrect       Boolean
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("answers")
+}
+
+model Room {
+  id            Int            @id @default(autoincrement())
+  name          String
+  capacity      Int
+  building      String
+  floor         Int
+  examSchedules ExamSchedule[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@map("rooms")
+}
+
+model ExamSchedule {
+  id                 Int                  @id @default(autoincrement())
+  examId             Int
+  exam               Exam                 @relation(fields: [examId], references: [id])
+  roomId             Int
+  room               Room                 @relation(fields: [roomId], references: [id])
+  startTime          DateTime
+  endTime            DateTime
+  status             ScheduleStatus       @default(SCHEDULED)
+  seatingArrangements SeatingArrangement[]
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  @@map("exam_schedules")
+}
+
+enum ScheduleStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+}
+
+model SeatingArrangement {
+  id           Int          @id @default(autoincrement())
+  scheduleId   Int
+  schedule     ExamSchedule @relation(fields: [scheduleId], references: [id])
+  studentId    Int
+  student      Student      @relation(fields: [studentId], references: [id])
+  seatNumber   String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@unique([scheduleId, studentId])
+  @@unique([scheduleId, seatNumber])
+  @@map("seating_arrangements")
+}
