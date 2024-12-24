@@ -1,13 +1,13 @@
 "use client";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Mail, Lock, ArrowRight } from "lucide-react";
-import { signIn, useSession } from "next-auth/react";
+import { Loader2, Mail, Lock, ArrowRight, User } from "lucide-react";
+import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 
 export default function Login() {
   const [userData, setUserData] = useState({
@@ -30,7 +30,7 @@ export default function Login() {
         redirect: false,
         identifier: userData.email,
         password: userData.password,
-        role: selectedRole, // Include role in signin
+        role: selectedRole,
       });
 
       if (result?.error) {
@@ -40,7 +40,6 @@ export default function Login() {
             : result.error
         );
       } else {
-        // Redirect based on role
         router.push(
           selectedRole === "teacher" ? "/teacher-dashboard" : "/dashboard"
         );
@@ -55,58 +54,62 @@ export default function Login() {
   const handleInputChange = (e) => {
     const { id, value } = e.target;
     setUserData((prev) => ({ ...prev, [id]: value }));
-    setError(""); // Clear error when user types
+    setError("");
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col bg-gray-50">
-      <header className="p-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
-        <div className="mx-auto flex justify-between items-center">
+    <div className="min-h-screen w-full flex flex-col bg-gradient-to-br from-blue-50 to-purple-50">
+      <header className="p-4 bg-white/80 backdrop-blur-md border-b border-gray-200">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
           <Link
             href="/"
-            className="text-xl font-bold hover:text-blue-100 transition-colors flex items-center gap-2"
+            className="text-xl font-bold text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-2 group"
           >
-            <ArrowRight className="h-5 w-5" />
-            Home
+            <ArrowRight className="h-5 w-5 group-hover:-translate-x-1 transition-transform" />
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
+              Home
+            </span>
           </Link>
         </div>
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md space-y-8">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900">Welcome Back</h1>
-            <p className="mt-2 text-gray-600">
-              Sign in to your account to continue
-            </p>
+        <div className="w-full max-w-md space-y-8 animate-fadeIn">
+          <div className="text-center space-y-2">
+            <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
+              Welcome Back
+            </h1>
+            <p className="text-gray-600">Sign in to continue your journey</p>
           </div>
 
-          {/* Role Selector */}
           <div className="flex justify-center space-x-4">
             {["teacher", "student"].map((role) => (
               <Button
                 key={role}
                 onClick={() => setSelectedRole(role)}
-                className={`w-32 transition-all ${
+                className={`w-32 transition-all duration-300 ${
                   selectedRole === role
-                    ? "bg-blue-600 text-white shadow-lg scale-105"
-                    : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
+                    ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg scale-105"
+                    : "bg-white/80 backdrop-blur-sm text-gray-600 hover:bg-gray-50 border border-gray-200"
                 }`}
               >
+                <User className={`h-4 w-4 mr-2 ${
+                  selectedRole === role ? "animate-bounce" : ""
+                }`} />
                 {role.charAt(0).toUpperCase() + role.slice(1)}
               </Button>
             ))}
           </div>
 
-          <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
+          <div className="bg-white/80 backdrop-blur-md p-8 rounded-2xl shadow-xl border border-gray-200 hover:shadow-2xl transition-shadow duration-300">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-4">
-                <div>
+                <div className="group">
                   <Label
                     htmlFor="email"
-                    className="text-gray-700 flex items-center gap-2"
+                    className="text-gray-700 flex items-center gap-2 group-hover:text-blue-600 transition-colors"
                   >
-                    <Mail className="h-4 w-4" />
+                    <Mail className="h-4 w-4 group-hover:scale-110 transition-transform" />
                     Email Address
                   </Label>
                   <Input
@@ -120,17 +123,17 @@ export default function Login() {
                         : "student@example.com"
                     }
                     required
-                    className="mt-1"
+                    className="mt-1 hover:border-blue-400 focus:border-blue-500 transition-colors"
                     autoComplete="email"
                   />
                 </div>
 
-                <div>
+                <div className="group">
                   <Label
                     htmlFor="password"
-                    className="text-gray-700 flex items-center gap-2"
+                    className="text-gray-700 flex items-center gap-2 group-hover:text-blue-600 transition-colors"
                   >
-                    <Lock className="h-4 w-4" />
+                    <Lock className="h-4 w-4 group-hover:scale-110 transition-transform" />
                     Password
                   </Label>
                   <div className="relative">
@@ -140,13 +143,13 @@ export default function Login() {
                       value={userData.password}
                       onChange={handleInputChange}
                       required
-                      className="mt-1"
+                      className="mt-1 hover:border-blue-400 focus:border-blue-500 transition-colors"
                       autoComplete="current-password"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm hover:text-gray-700"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm hover:text-blue-600 transition-colors"
                     >
                       {showPassword ? "Hide" : "Show"}
                     </button>
@@ -155,26 +158,26 @@ export default function Login() {
               </div>
 
               <div className="flex items-center justify-between">
-                <label className="flex items-center">
+                <label className="flex items-center group">
                   <input
                     type="checkbox"
                     className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                   />
-                  <span className="ml-2 text-sm text-gray-600">
+                  <span className="ml-2 text-sm text-gray-600 group-hover:text-blue-600 transition-colors">
                     Remember me
                   </span>
                 </label>
 
                 <Link
                   href="/forgot-password"
-                  className="text-sm text-blue-600 hover:text-blue-500"
+                  className="text-sm text-blue-600 hover:text-blue-500 transition-colors"
                 >
                   Forgot password?
                 </Link>
               </div>
 
               {error && (
-                <Alert variant="destructive" className="animate-appear">
+                <Alert variant="destructive" className="animate-shake">
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
@@ -182,7 +185,7 @@ export default function Login() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg transition-colors"
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 rounded-lg transition-all duration-300 transform hover:scale-105"
               >
                 {loading ? (
                   <>
@@ -196,27 +199,27 @@ export default function Login() {
                 )}
               </Button>
             </form>
-            <nav>
-              <br />
-              <p className="text-center">
-                Don't have an account?
+
+            <div className="mt-6 text-center">
+              <p className="text-gray-600">
+                Don't have an account?{" "}
                 <Link
                   href="/signup"
-                  className="hover:text-blue-700 transition-colors"
+                  className="text-blue-600 hover:text-blue-700 transition-colors font-medium"
                 >
                   Sign up
                 </Link>
               </p>
-            </nav>
+            </div>
           </div>
 
           <div className="text-center text-sm text-gray-600">
             By signing in, you agree to our{" "}
-            <Link href="/terms" className="text-blue-600 hover:text-blue-500">
+            <Link href="/terms" className="text-blue-600 hover:text-blue-500 transition-colors">
               Terms of Service
             </Link>{" "}
             and{" "}
-            <Link href="/privacy" className="text-blue-600 hover:text-blue-500">
+            <Link href="/privacy" className="text-blue-600 hover:text-blue-500 transition-colors">
               Privacy Policy
             </Link>
           </div>
