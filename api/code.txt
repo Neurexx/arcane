@@ -1,0 +1,480 @@
+// package.json
+{
+  "name": "exam-portal-backend",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  }
+}
+
+// src/models/user.model.js
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
+
+const userSchema = new mongoose.Schema({
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    lowercase: true
+  },
+  password: {
+    type: String,
+    required: true
+  },
+  role: {
+    type: String,
+    enum: ['student', 'teacher', 'admin'],
+    default: 'student'
+  },
+  profile: {
+    type: mongoose.Schema.Types.ObjectId,
+    refPath: 'role'
+  }
+}, {
+  timestamps: true
+});
+
+userSchema.pre('save', async function(next) {
+  if (this.isModified('password')) {
+    this.password = await bcrypt.hash(this.password, 10);
+  }
+  next();
+});
+
+userSchema.methods.comparePassword = async function(password) {
+  return bcrypt.compare(password, this.password);
+};
+
+const User = mongoose.model('User', userSchema);
+module.exports = User;
+
+// src/models/student.model.js
+const mongoose = require('mongoose');
+
+const studentSchema = new mongoose.Schema({
+  rollNumber: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  name: {
+    type: String,
+    required: true
+  },
+  department: {
+    type: String,
+    required: true
+  },
+  semester: {
+    type: Number,
+    required: true
+  },
+  examAttempts: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ExamAttempt'
+  }]
+}, {
+  timestamps: true
+});
+
+const Student = mongoose.model('Student', studentSchema);
+module.exports = Student;
+
+// src/models/teacher.model.js
+const mongoose = require('mongoose');
+
+const teacherSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true
+  },
+  department: {
+    type: String,
+    required: true
+  },
+  exams: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Exam'
+  }]
+}, {
+  timestamps: true
+});
+
+const Teacher = mongoose.model('Teacher', teacherSchema);
+module.exports = Teacher;
+
+// src/models/exam.model.js
+const mongoose = require('mongoose');
+
+const examSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true
+  },
+  course: {
+    code: String,
+    name: String,
+    department: String,
+    semester: Number
+  },
+  teacher: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Teacher',
+    required: true
+  },
+  questions: [{
+    question: String,
+    options: [String],
+    correctOption: Number,
+    marks: Number
+  }],
+  duration: {
+    type: Number,
+    required: true
+  },
+  totalMarks: {
+    type: Number,
+    required: true
+  },
+  passingMarks: {
+    type: Number,
+    required: true
+  },
+  schedule: {
+    date: Date,
+    startTime: Date,
+    endTime: Date,
+    room: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Room'
+    }
+  },
+  status: {
+    type: String,
+    enum: ['draft', 'published', 'in-progress', 'completed'],
+    default: 'draft'
+  }
+}, {
+  timestamps: true
+});
+
+const Exam = mongoose.model('Exam', examSchema);
+module.exports = Exam;
+
+// src/models/examAttempt.model.js
+const mongoose = require('mongoose');
+
+const examAttemptSchema = new mongoose.Schema({
+  exam: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Exam',
+    required: true
+  },
+  student: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Student',
+    required: true
+  },
+  answers: [{
+    question: {
+      type: mongoose.Schema.Types.ObjectId
+    },
+    selectedOption: Number,
+    isCorrect: Boolean
+  }],
+  startTime: {
+    type: Date,
+    default: Date.now
+  },
+  endTime: Date,
+  score: Number,
+  status: {
+    type: String,
+    enum: ['in-progress', 'submitted', 'evaluated'],
+    default: 'in-progress'
+  },
+  seating: {
+    room: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Room'
+    },
+    seatNumber: String
+  }
+}, {
+  timestamps: true
+});
+
+const ExamAttempt = mongoose.model('ExamAttempt', examAttemptSchema);
+module.exports = ExamAttempt;
+
+// src/models/room.model.js
+const mongoose = require('mongoose');
+
+const roomSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true
+  },
+  capacity: {
+    type: Number,
+    required: true
+  },
+  building: String,
+  floor: Number,
+  schedule: [{
+    exam: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Exam'
+    },
+    date: Date,
+    startTime: Date,
+    endTime: Date
+  }]
+}, {
+  timestamps: true
+});
+
+const Room = mongoose.model('Room', roomSchema);
+module.exports = Room;
+
+// src/controllers/auth.controller.js
+const User = require('../models/user.model');
+const Student = require('../models/student.model');
+const Teacher = require('../models/teacher.model');
+const jwt = require('jsonwebtoken');
+
+class AuthController {
+  async register(req, res) {
+    try {
+      const { email, password, role, ...profileData } = req.body;
+
+      // Create profile based on role
+      let profile;
+      if (role === 'student') {
+        profile = await Student.create(profileData);
+      } else if (role === 'teacher') {
+        profile = await Teacher.create(profileData);
+      }
+
+      // Create user
+      const user = await User.create({
+        email,
+        password,
+        role,
+        profile: profile._id
+      });
+
+      res.status(201).json({ message: 'Registration successful' });
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  async login(req, res) {
+    try {
+      const { email, password } = req.body;
+      
+      const user = await User.findOne({ email }).populate('profile');
+      if (!user || !(await user.comparePassword(password))) {
+        throw new Error('Invalid credentials');
+      }
+
+      const token = jwt.sign(
+        { userId: user._id, role: user.role, profileId: user.profile._id },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      res.json({ token, user });
+    } catch (error) {
+      res.status(401).json({ error: error.message });
+    }
+  }
+}
+
+// src/controllers/exam.controller.js
+const Exam = require('../models/exam.model');
+const ExamAttempt = require('../models/examAttempt.model');
+const Room = require('../models/room.model');
+
+class ExamController {
+  // Teacher methods
+  async createExam(req, res) {
+    try {
+      const examData = { ...req.body, teacher: req.user.profileId };
+      const exam = await Exam.create(examData);
+      res.status(201).json(exam);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  async publishExam(req, res) {
+    try {
+      const { examId } = req.params;
+      const exam = await Exam.findByIdAndUpdate(
+        examId,
+        { status: 'published' },
+        { new: true }
+      );
+      res.json(exam);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  // Student methods
+  async startExam(req, res) {
+    try {
+      const { examId } = req.params;
+      const studentId = req.user.profileId;
+
+      const exam = await Exam.findById(examId);
+      if (!exam || exam.status !== 'published') {
+        throw new Error('Exam not available');
+      }
+
+      const attempt = await ExamAttempt.create({
+        exam: examId,
+        student: studentId
+      });
+
+      res.json(attempt);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  async submitAnswer(req, res) {
+    try {
+      const { attemptId } = req.params;
+      const { questionId, selectedOption } = req.body;
+
+      const attempt = await ExamAttempt.findById(attemptId);
+      const exam = await Exam.findById(attempt.exam);
+
+      const question = exam.questions.id(questionId);
+      const isCorrect = question.correctOption === selectedOption;
+
+      attempt.answers.push({
+        question: questionId,
+        selectedOption,
+        isCorrect
+      });
+
+      await attempt.save();
+      res.json(attempt);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  async submitExam(req, res) {
+    try {
+      const { attemptId } = req.params;
+
+      const attempt = await ExamAttempt.findById(attemptId);
+      const exam = await Exam.findById(attempt.exam);
+
+      const score = attempt.answers.reduce((total, answer) => {
+        return total + (answer.isCorrect ? exam.questions.id(answer.question).marks : 0);
+      }, 0);
+
+      attempt.status = 'submitted';
+      attempt.endTime = new Date();
+      attempt.score = score;
+      await attempt.save();
+
+      res.json(attempt);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+}
+
+// src/middleware/auth.middleware.js
+const jwt = require('jsonwebtoken');
+
+const authenticate = (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) throw new Error('Authentication required');
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    res.status(401).json({ error: 'Authentication failed' });
+  }
+};
+
+const authorize = (roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    next();
+  };
+};
+
+// src/routes/index.js
+const express = require('express');
+const { authenticate, authorize } = require('../middleware/auth.middleware');
+const AuthController = require('../controllers/auth.controller');
+const ExamController = require('../controllers/exam.controller');
+
+const router = express.Router();
+const authController = new AuthController();
+const examController = new ExamController();
+
+// Auth routes
+router.post('/auth/register', authController.register);
+router.post('/auth/login', authController.login);
+
+// Teacher routes
+router.post('/exams', authenticate, authorize(['teacher']), examController.createExam);
+router.put('/exams/:examId/publish', authenticate, authorize(['teacher']), examController.publishExam);
+
+// Student routes
+router.post('/exams/:examId/start', authenticate, authorize(['student']), examController.startExam);
+router.post('/attempts/:attemptId/answer', authenticate, authorize(['student']), examController.submitAnswer);
+router.post('/attempts/:attemptId/submit', authenticate, authorize(['student']), examController.submitExam);
+
+module.exports = router;
+
+// src/index.js
+require('dotenv').config();
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const routes = require('./routes');
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('Connected to MongoDB'))
+  .catch(err => console.error('MongoDB connection error:', err));
+
+app.use(cors());
+app.use(express.json());
+app.use('/api', routes);
+
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});
